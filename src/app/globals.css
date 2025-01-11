@@ -4,18 +4,105 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --foreground: #1a1a1a;
+  --primary: #36bcba;
+  --primary-light: #5fd1a9;
+  --gray-light: #f5f5f5;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans);
+}
+
+@layer components {
+  /* Layout Classes */
+  .container-padding {
+    @apply px-4 sm:px-6 lg:px-8;
+  }
+
+  .max-container {
+    @apply max-w-7xl mx-auto;
+  }
+
+  /* Navigation Classes */
+  .nav-fixed {
+    @apply fixed top-0 w-full bg-white/90 backdrop-blur-sm z-50 
+           transition-shadow duration-300 border-b border-gray-100;
+  }
+
+  .nav-container {
+    @apply flex items-center justify-between h-20 max-w-[1440px] mx-auto
+           px-4 sm:px-6 lg:px-8;
+  }
+
+  .nav-link {
+    @apply text-xl sm:text-2xl font-semibold text-primary hover:text-primary-light 
+           transition-colors transform hover:scale-105 duration-300
+           flex items-center gap-2;
+  }
+
+  .nav-button {
+    @apply bg-primary text-white px-6 py-3 rounded-lg
+           transition-all duration-300 transform
+           shadow-sm hover:shadow-md text-base sm:text-lg;
+  }
+
+  .nav-button-hover {
+    @apply bg-primary-light scale-105;
+  }
+
+  /* Hero Classes */
+  .hero-title {
+    @apply text-4xl sm:text-5xl lg:text-6xl font-bold text-primary mb-6;
+  }
+
+  .hero-subtitle {
+    @apply block text-foreground;
+  }
+
+  .hero-description {
+    @apply text-lg sm:text-xl max-w-2xl mx-auto mb-8 text-gray-600;
+  }
+
+  .hero-button {
+    @apply bg-primary text-white px-8 py-4 rounded-lg text-lg font-semibold
+           transition-all duration-300 transform
+           shadow-sm hover:shadow-md disabled:opacity-50;
+  }
+
+  .hero-button-hover {
+    @apply scale-105;
+  }
+
+  /* Card Classes */
+  .game-card {
+    @apply bg-gray-light p-6 rounded-lg transition-transform duration-300 shadow-md;
+  }
+
+  .game-card-hover {
+    @apply transform -translate-y-2 shadow-lg;
+  }
+
+  .card-title {
+    @apply text-xl font-semibold mb-4;
+  }
+
+  .card-list {
+    @apply space-y-2 text-gray-600;
+  }
+
+  .card-list-item {
+    @apply flex items-center space-x-2;
+  }
+
+  .card-bullet {
+    @apply text-primary;
+  }
+
+  /* Grid Layout */
+  .rules-grid {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16;
+  }
 }
