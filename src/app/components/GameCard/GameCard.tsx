@@ -1,12 +1,7 @@
 "use client";
 
 import React from 'react';
-
-interface GameCardProps {
-    title: string;
-    items: string[];
-    className?: string;
-}
+import { GameCardProps } from '@/app/types/components';
 
 export default function GameCard({ title, items, className = '' }: GameCardProps) {
     const [isHovered, setIsHovered] = React.useState(false);
@@ -17,7 +12,7 @@ export default function GameCard({ title, items, className = '' }: GameCardProps
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
         >
-            <h2 className="card-title">{title}</h2>
+            <h2 className="card-title">{title} </h2>
             <ul className="card-list">
                 {items.map((item, index) => (
                     <li key={index} className="card-list-item">

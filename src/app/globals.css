@@ -10,6 +10,14 @@
   --gray-light: #f5f5f5;
 }
 
+[data-theme='dark'] {
+  --background: #1a1a1a;
+  --foreground: #ffffff;
+  --primary: #36bcba;
+  --primary-light: #5fd1a9;
+  --gray-light: #2a2a2a;
+}
+
 body {
   color: var(--foreground);
   background: var(--background);
@@ -78,7 +86,8 @@ body {
 
   /* Card Classes */
   .game-card {
-    @apply bg-gray-light p-6 rounded-lg transition-transform duration-300 shadow-md;
+    @apply bg-gray-light p-6 rounded-lg transition-transform duration-300 shadow-md
+           border-2 border-primary;
   }
 
   .game-card-hover {
