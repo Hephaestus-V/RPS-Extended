@@ -1,11 +1,17 @@
 "use client";
 
 import React, { useState } from 'react';
+import DOMPurify from 'dompurify';
 import {GameSetupProps } from '@/app/types/game';
 
 export default function GameSetup({ onClose, mode, onJoinGame }: GameSetupProps) {
   const [peerId, setPeerId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
+
+  const handleGameIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const sanitizedValue = DOMPurify.sanitize(e.target.value);
+    setPeerId(sanitizedValue);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -13,8 +19,9 @@ export default function GameSetup({ onClose, mode, onJoinGame }: GameSetupProps)
     try {
         if (mode === 'JOIN' && onJoinGame) {
           console.log('Joining game with ID:', peerId);
-        await onJoinGame(peerId);
-      }
+          const sanitizedGameId = DOMPurify.sanitize(peerId.trim());
+          await onJoinGame(sanitizedGameId);
+        }
     } catch (error) {
       console.error('Failed to join game:', error);
     } finally {
@@ -39,7 +46,7 @@ export default function GameSetup({ onClose, mode, onJoinGame }: GameSetupProps)
                 type="text"
                 id="peerId"
                 value={peerId}
-                onChange={(e) => setPeerId(e.target.value)}
+                onChange={handleGameIdChange}
                 className="input-field"
                 placeholder="Enter the game ID shared by your opponent"
                 required

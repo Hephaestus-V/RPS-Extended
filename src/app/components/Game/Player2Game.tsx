@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useWallet } from '@/app/contexts/WalletContext';
 import { Move, PeerMessageType } from '@/app/types/game';
 import Peer, { DataConnection } from 'peerjs';
+import DOMPurify from 'dompurify';
 
 interface Player2GameProps {
     gameId: string;
@@ -23,7 +24,8 @@ export default function Player2Game({ gameId }: Player2GameProps) {
             if (typeof data === 'object' && data && 'type' in data) {
                 const peerData = data as PeerMessageType;
                 if (peerData.type === 'GAME_CREATED' && mounted) {
-                    setGameContract(peerData.contractAddress);
+                    const sanitizedAddress = DOMPurify.sanitize(peerData.contractAddress);
+                    setGameContract(sanitizedAddress);
                     setIsWaiting(false);
                 }
             }

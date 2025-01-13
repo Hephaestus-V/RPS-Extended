@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Move, PeerMessageType } from '@/app/types/game';
 import Peer, { DataConnection } from 'peerjs';
+import DOMPurify from 'dompurify';
 
 
 
@@ -45,7 +46,8 @@ export default function Player1Game() {
                         if (typeof data === 'object' && data && 'type' in data) {
                             const peerData = data as PeerMessageType;
                             if (peerData.type === 'PLAYER2_JOINED' && mounted) {
-                                setPlayer2Address(peerData.address);
+                                const sanitizedAddress = DOMPurify.sanitize(peerData.address);
+                                setPlayer2Address(sanitizedAddress);
                             }
                         }
                     });
@@ -90,6 +92,11 @@ export default function Player1Game() {
         } finally {
             setIsCreatingGame(false);
         }
+    };
+
+    const handleStakeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const sanitizedValue = DOMPurify.sanitize(e.target.value);
+        setStake(sanitizedValue);
     };
 
     // Use peerId instead of gameId in the UI
@@ -143,7 +150,7 @@ export default function Player1Game() {
                     <input
                         type="number"
                         value={stake}
-                        onChange={(e) => setStake(e.target.value)}
+                        onChange={handleStakeChange}
                         className="input-field w-full"
                         placeholder="Enter stake amount"
                         step="0.01"

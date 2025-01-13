@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "dompurify": "^3.2.3",
     "next": "15.1.4",
     "peerjs": "^1.5.4",
     "react": "^19.0.0",
