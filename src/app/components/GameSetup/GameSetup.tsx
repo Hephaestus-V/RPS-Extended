@@ -1,17 +1,25 @@
 "use client";
 
 import React, { useState } from 'react';
-import { GameMode, GameSetupProps } from '@/app/types/game';
+import {GameSetupProps } from '@/app/types/game';
 
-export default function GameSetup({ onClose, mode }: GameSetupProps) {
+export default function GameSetup({ onClose, mode, onJoinGame }: GameSetupProps) {
   const [peerId, setPeerId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // TODO: Implement peer connection logic
-    setIsLoading(false);
+    try {
+        if (mode === 'JOIN' && onJoinGame) {
+          console.log('Joining game with ID:', peerId);
+        await onJoinGame(peerId);
+      }
+    } catch (error) {
+      console.error('Failed to join game:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

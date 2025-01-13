@@ -7,8 +7,9 @@ export interface PeerConnectionType {
 export type GameMode = "CREATE" | "JOIN" | null;
 
 export interface GameSetupProps {
-  onClose: () => void;
   mode: GameMode;
+  onClose: () => void;
+  onJoinGame?: (gameId: string) => Promise<void>;
 }
 
 export interface GameState {
@@ -25,7 +26,7 @@ export interface GameState {
     move?: string;
     wager?: number;
   };
-  status: 'waiting' | 'playing' | 'revealing' | 'finished';
+  status: "waiting" | "playing" | "revealing" | "finished";
   winner?: string;
 }
 
@@ -35,4 +36,28 @@ export interface GameProps {
   onMove: (move: string) => void;
   onWager: (amount: number) => void;
   onReveal: () => void;
+}
+
+export enum Move {
+  Rock = "Rock",
+  Paper = "Paper",
+  Scissors = "Scissors",
+  Spock = "Spock",
+  Lizard = "Lizard",
+}
+
+export type PeerMessageType =
+  | { type: "PLAYER2_JOINED"; address: string }
+  | { type: "GAME_CREATED"; contractAddress: string; stake: string };
+
+export interface PeerContextType {
+  connection: PeerConnectionType | null;
+  initializePeer: (isHost: boolean) => Promise<string>;
+  connectToPeer: (peerId: string) => Promise<boolean>;
+  disconnect: () => void;
+  sendData: (data: PeerMessageType) => void;
+  onData: (callback: (data: PeerMessageType) => void) => void;
+}
+export interface PlayButtonProps {
+  onGameModeSelect: (mode: GameMode) => void;
 }

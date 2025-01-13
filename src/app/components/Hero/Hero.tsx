@@ -1,53 +1,91 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useWallet } from '@/app/contexts/WalletContext';
-import { usePeer } from '@/app/contexts/PeerContext';
 import { GameMode } from '@/app/types/game';
 import GameSetup from '../GameSetup/GameSetup';
+import Player1Game from '../Game/Player1Game';
+import Player2Game from '../Game/Player2Game';
+import GameRules from '../GameRules/GameRules';
+import { PlayButtonProps } from '@/app/types/game';
 
 export default function Hero() {
     const [showJoinGame, setShowJoinGame] = useState(false);
     const [gameMode, setGameMode] = useState<GameMode>(null);
-    const { initializePeer } = usePeer();
+    const [peerId, setPeerId] = useState<string | null>(null);
+    const [joinGameId, setJoinGameId] = useState<string | null>(null);
+   
 
     const handleGameModeSelect = async (mode: GameMode) => {
         setGameMode(mode);
         if (mode === 'CREATE') {
-            const peerId = await initializePeer(true);
-            console.log('New game created with Peer ID:', peerId);
-            // Render the new game UI here
+            setPeerId('placeholder');
         } else if (mode === 'JOIN') {
             setShowJoinGame(true);
         }
     };
 
+    const handleJoinGame = async (gameId: string) => {
+        try {
+            console.log('Joining game with ID:', gameId);
+            setJoinGameId(gameId);
+            setShowJoinGame(false);
+            setGameMode('JOIN');
+        } catch (error) {
+            console.error('Failed to initialize peer for joining:', error);
+            setGameMode(null);
+            setJoinGameId(null);
+        }
+    };
+
+    const renderGameContent = () => {
+        console.log('Current state:', { gameMode, joinGameId, peerId }); // Debug current state
+        
+        if (gameMode === 'CREATE' && peerId) {
+            return <Player1Game />;
+        }
+        if (gameMode === 'JOIN' && joinGameId) {
+            console.log('Rendering Player2Game with ID:', joinGameId);
+            return <Player2Game gameId={joinGameId} />;
+        }
+        return (
+            <>
+                <div className="mb-16">
+                    <h1 className="hero-title">
+                        Rock Paper Scissors
+                        <span className="hero-subtitle">Lizard Spock</span>
+                    </h1>
+                    <p className="hero-description mb-8">
+                        Play the extended version of Rock Paper Scissors with Web3 integration. 
+                        Challenge players and win ETH on Sepolia testnet!
+                    </p>
+                    <PlayButton onGameModeSelect={handleGameModeSelect} />
+                    {showJoinGame && (
+                        <GameSetup 
+                            mode="JOIN"
+                            onClose={() => {
+                                setShowJoinGame(false);
+                                setGameMode(null);
+                            }}
+                            onJoinGame={handleJoinGame}
+                        />
+                    )}
+                </div>
+
+                <div className="border-t border-gray-200 pt-12">
+                    <div className="mx-auto">
+                        <GameRules />
+                    </div>
+                </div>
+            </>
+        );
+    };
+
     return (
-        <section className="text-center mb-16 animate-fadeIn">
-            <h1 className="hero-title">
-                Rock Paper Scissors
-                <span className="hero-subtitle">Lizard Spock</span>
-            </h1>
-            <p className="hero-description">
-                Play the extended version of Rock Paper Scissors with Web3 integration. 
-                Challenge players and win ETH on Sepolia testnet!
-            </p>
-            <PlayButton onGameModeSelect={handleGameModeSelect} />
-            {showJoinGame && (
-                <GameSetup 
-                    mode="JOIN"
-                    onClose={() => {
-                        setShowJoinGame(false);
-                        setGameMode(null);
-                    }}
-                />
-            )}
+        <section className="text-center animate-fadeIn">
+            {renderGameContent()}
         </section>
     );
-}
-
-interface PlayButtonProps {
-    onGameModeSelect: (mode: GameMode) => void;
 }
 
 function PlayButton({ onGameModeSelect }: PlayButtonProps) {
@@ -56,7 +94,7 @@ function PlayButton({ onGameModeSelect }: PlayButtonProps) {
     const { isConnected, isCorrectNetwork, connectWallet, switchNetwork } = useWallet();
     const optionsRef = React.useRef<HTMLDivElement>(null);
 
-    React.useEffect(() => {
+    useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
             if (optionsRef.current && !optionsRef.current.contains(event.target as Node)) {
                 setShowOptions(false);

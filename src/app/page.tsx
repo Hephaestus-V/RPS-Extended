@@ -1,7 +1,6 @@
 import React from 'react';
 import NavBar from "./components/NavBar/NavBar";
 import Hero from "./components/Hero/Hero";
-import GameRules from "./components/GameRules/GameRules";
 
 export default function Home() {
   return (
@@ -9,7 +8,6 @@ export default function Home() {
       <NavBar />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <Hero />
-        <GameRules />
       </div>
     </main>
   );
