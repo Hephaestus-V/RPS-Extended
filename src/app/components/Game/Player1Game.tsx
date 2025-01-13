@@ -14,6 +14,8 @@ export default function Player1Game() {
     
     const peerRef = useRef<Peer | null>(null);
     const connectionRef = useRef<DataConnection | null>(null);
+    const salt = crypto.randomUUID();
+    console.log("salt", salt);
 
     useEffect(() => {
         let mounted = true;
@@ -80,8 +82,7 @@ export default function Player1Game() {
         
         setIsCreatingGame(true);
         try {
-            // Contract interaction will be implemented here
-            const contractAddress = '0x...'; // This will be the actual contract address
+            const contractAddress = '0x...';
             connectionRef.current.send({ 
                 type: 'GAME_CREATED', 
                 contractAddress,
@@ -99,39 +100,38 @@ export default function Player1Game() {
         setStake(sanitizedValue);
     };
 
-    // Use peerId instead of gameId in the UI
     if (!player2Address) {
         return (
-            <div className="flex flex-col items-center justify-center p-8 bg-gray-light rounded-lg max-w-2xl mx-auto">
-                <h2 className="text-2xl font-bold text-primary mb-6">Waiting for Player 2</h2>
-                <div className="bg-white p-6 rounded-lg shadow-md w-full mb-6">
-                    <p className="text-lg mb-4">Share this Game ID with Player 2:</p>
-                    <div className="flex items-center gap-4">
-                        <code className="bg-gray-100 px-4 py-2 rounded flex-1 font-mono">{peerId}</code>
+            <div className="flex flex-col items-center justify-center p-4 sm:p-8 bg-gray-light rounded-lg max-w-2xl mx-auto w-full">
+                <h2 className="text-xl sm:text-2xl font-bold text-primary mb-4 sm:mb-6">Waiting for Player 2</h2>
+                <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md w-full mb-4 sm:mb-6">
+                    <p className="text-base sm:text-lg mb-3 sm:mb-4">Share this Game ID with Player 2:</p>
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
+                        <code className="bg-gray-100 p-2 sm:px-4 sm:py-2 rounded font-mono break-all text-sm sm:text-base flex-1">{peerId}</code>
                         <button
                             onClick={() => navigator.clipboard.writeText(peerId)}
-                            className="button-primary"
+                            className="button-primary whitespace-nowrap px-4 py-2"
                         >
                             Copy
                         </button>
                     </div>
                 </div>
-                <div className="animate-pulse mt-6">
-                    <div className="h-4 w-48 bg-primary/20 rounded"></div>
+                <div className="animate-pulse mt-4 sm:mt-6">
+                    <div className="h-4 w-36 sm:w-48 bg-primary/20 rounded"></div>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="flex flex-col items-center justify-center p-4 sm:p-8 bg-gray-light rounded-lg max-w-2xl mx-auto">
+        <div className="flex flex-col items-center justify-center p-4 sm:p-8 bg-gray-light rounded-lg max-w-2xl mx-auto w-full">
             <h2 className="text-xl sm:text-2xl font-bold text-primary mb-4 sm:mb-6">Choose Your Move</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4 mb-6 sm:mb-8 w-full">
                 {Object.values(Move).filter(move => typeof move === 'string').map((move) => (
                     <button
                         key={move}
                         onClick={() => handleMoveSelection(move as Move)}
-                        className={`p-3 sm:p-4 rounded-lg transition-all duration-300 text-sm sm:text-base ${
+                        className={`p-2 sm:p-4 rounded-lg transition-all duration-300 text-sm sm:text-base break-words ${
                             selectedMove === move
                                 ? 'bg-primary text-white shadow-lg'
                                 : 'bg-white hover:bg-primary/10'
@@ -151,7 +151,7 @@ export default function Player1Game() {
                         type="number"
                         value={stake}
                         onChange={handleStakeChange}
-                        className="input-field w-full"
+                        className="input-field w-full px-3 py-2 text-base sm:text-lg"
                         placeholder="Enter stake amount"
                         step="0.01"
                     />
@@ -160,15 +160,15 @@ export default function Player1Game() {
                 <button
                     onClick={handleCreateGame}
                     disabled={!selectedMove || !stake || isCreatingGame}
-                    className="w-full button-primary disabled:opacity-50 relative"
+                    className="w-full button-primary disabled:opacity-50 relative py-2 sm:py-3"
                 >
                     {isCreatingGame ? (
                         <span className="flex items-center justify-center">
-                            <span className="animate-spin h-5 w-5 mr-3 border-2 border-white border-t-transparent rounded-full"></span>
-                            Creating Game...
+                            <span className="animate-spin h-4 w-4 sm:h-5 sm:w-5 mr-2 sm:mr-3 border-2 border-white border-t-transparent rounded-full"></span>
+                            <span className="text-sm sm:text-base">Creating Game...</span>
                         </span>
                     ) : (
-                        'Create Game'
+                        <span className="text-sm sm:text-base">Create Game</span>
                     )}
                 </button>
             </div>

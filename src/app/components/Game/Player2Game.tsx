@@ -104,14 +104,16 @@ export default function Player2Game({ gameId }: Player2GameProps) {
 
     if (isWaiting) {
         return (
-            <div className="flex flex-col items-center justify-center p-8 bg-gray-light rounded-lg max-w-2xl mx-auto">
-                <h2 className="text-2xl font-bold text-primary mb-6">Waiting for Player 1</h2>
-                <div className="bg-white p-6 rounded-lg shadow-md w-full mb-6">
-                    <p className="text-lg mb-4">Game Status:</p>
-                    <div className="flex items-center gap-4">
-                        <div className="animate-pulse flex items-center gap-2">
-                            <div className="h-3 w-3 bg-primary/20 rounded-full"></div>
-                            <p className="text-gray-600">Waiting for Player 1 to create game and choose move...</p>
+            <div className="flex flex-col items-center justify-center p-4 sm:p-8 bg-gray-light rounded-lg max-w-2xl mx-auto w-full">
+                <h2 className="text-xl sm:text-2xl font-bold text-primary mb-4 sm:mb-6">Waiting for Player 1</h2>
+                <div className="bg-white p-4 sm:p-6 rounded-lg shadow-md w-full mb-4 sm:mb-6">
+                    <p className="text-base sm:text-lg mb-3 sm:mb-4">Game Status:</p>
+                    <div className="flex items-center gap-2 sm:gap-4">
+                        <div className="animate-pulse flex items-center gap-2 w-full">
+                            <div className="h-3 w-3 flex-shrink-0 bg-primary/20 rounded-full"></div>
+                            <p className="text-gray-600 text-sm sm:text-base break-words">
+                                Waiting for Player 1 to create game and choose move...
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -120,16 +122,20 @@ export default function Player2Game({ gameId }: Player2GameProps) {
     }
 
     return (
-        <div className="flex flex-col items-center justify-center p-8 bg-gray-light rounded-lg max-w-2xl mx-auto">
-            <h2 className="text-2xl font-bold text-primary mb-6">Connected to Game: {gameId}</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8 w-full">
+        <div className="flex flex-col items-center justify-center p-4 sm:p-8 bg-gray-light rounded-lg max-w-2xl mx-auto w-full">
+            <h2 className="text-xl sm:text-2xl font-bold text-primary mb-4 sm:mb-6">
+                <span className="block text-center break-words">Connected to Game:</span>
+                <span className="block text-center text-base sm:text-lg font-mono mt-2 break-all">{gameId}</span>
+            </h2>
+            
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4 mb-6 sm:mb-8 w-full">
                 {Object.values(Move).filter(move => typeof move === 'string').map((move) => (
                     <button
                         key={move}
                         onClick={() => handleMoveSelection(move as Move)}
-                        className={`p-4 rounded-lg transition-all duration-300 ${
+                        className={`p-2 sm:p-4 rounded-lg transition-all duration-300 text-sm sm:text-base break-words ${
                             selectedMove === move
-                                ? 'bg-primary text-white'
+                                ? 'bg-primary text-white shadow-lg'
                                 : 'bg-white hover:bg-primary/10'
                         }`}
                     >
@@ -138,13 +144,15 @@ export default function Player2Game({ gameId }: Player2GameProps) {
                 ))}
             </div>
 
-            <button
-                onClick={handlePlayMove}
-                disabled={!selectedMove}
-                className="w-full max-w-md button-primary disabled:opacity-50"
-            >
-                Play Move
-            </button>
+            <div className="w-full max-w-md">
+                <button
+                    onClick={handlePlayMove}
+                    disabled={!selectedMove}
+                    className="w-full button-primary disabled:opacity-50 py-2 sm:py-3 text-sm sm:text-base"
+                >
+                    Play Move
+                </button>
+            </div>
         </div>
     );
 } 

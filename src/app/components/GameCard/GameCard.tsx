@@ -8,16 +8,16 @@ export default function GameCard({ title, items, className = '' }: GameCardProps
 
     return (
         <div 
-            className={`game-card ${isHovered ? 'game-card-hover' : ''} ${className}`}
+            className={`game-card overflow-hidden ${isHovered ? 'game-card-hover' : ''} ${className}`}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
         >
-            <h2 className="card-title">{title} </h2>
+            <h2 className="card-title text-lg sm:text-xl break-words">{title}</h2>
             <ul className="card-list">
                 {items.map((item, index) => (
-                    <li key={index} className="card-list-item">
-                        <span className="card-bullet">•</span>
-                        <span>{item}</span>
+                    <li key={index} className="card-list-item flex items-start space-x-2 break-words">
+                        <span className="card-bullet flex-shrink-0">•</span>
+                        <span className="flex-1 min-w-0">{item}</span>
                     </li>
                 ))}
             </ul>
