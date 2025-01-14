@@ -48,7 +48,9 @@ export enum Move {
 
 export type PeerMessageType =
   | { type: "PLAYER2_JOINED"; address: string }
-  | { type: "GAME_CREATED"; contractAddress: string; stake: string };
+  | { type: "GAME_CREATED"; contractAddress: string; stake: string }
+  | { type: "PLAYER2_MOVED" }
+  | { type: "REVEAL_MOVE" };
 
 export interface PeerContextType {
   connection: PeerConnectionType | null;
