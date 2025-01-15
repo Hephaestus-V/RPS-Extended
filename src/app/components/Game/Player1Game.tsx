@@ -16,37 +16,35 @@ import { sepolia } from "viem/chains";
 import { RPS_ABI } from "@/app/contracts/RPS";
 import { RPS_BYTECODE } from "@/app/contracts/RPS";
 import { EthereumProvider } from "@/app/types/ethereum";
+import useForceUpdate from "@/app/utils/forceUpdate";
 
 export default function Player1Game() {
-  const [selectedMove, setSelectedMove] = useState<Move | null>(null);
   const [stake, setStake] = useState<string>("");
   const [player2Address, setPlayer2Address] = useState<string>("");
   const [isCreatingGame, setIsCreatingGame] = useState(false);
   const [peerId, setPeerId] = useState<string>("");
   const { address } = useWallet();
   const [isRevealPhase, setIsRevealPhase] = useState(false);
+  const [player2Move, setPlayer2Move] = useState<Move | null>(null);
+  const [waitingForPlayer2, setWaitingForPlayer2] = useState(false);
+  const [gameResult, setGameResult] = useState<string | null>(null);
 
   const peerRef = useRef<Peer | null>(null);
   const connectionRef = useRef<DataConnection | null>(null);
-  const saltRef = useRef<string>(crypto.randomUUID());
   const contractRef = useRef<Address | null>(null);
   const moveRef = useRef<Move | null>(null);
+  const saltRef = useRef<string | null>(null);
 
-  console.log("salt", saltRef.current);
-
-  const generateSaltFromUUID = (uuid: string): bigint => {
-    const hexString = "0x" + uuid.replace(/-/g, "");
-    return BigInt(hexString);
-  };
+  const forceUpdate = useForceUpdate();
 
   const handlePeerData = (data: unknown, mounted: boolean = true) => {
     if (typeof data === "object" && data && "type" in data) {
       const peerData = data as PeerMessageType;
-
-      if (peerData.type === "PLAYER2_JOINED" && mounted) {
+      if (peerData.type === "PLAYER2_JOINED" && mounted && peerData.address) {
         const sanitizedAddress = DOMPurify.sanitize(peerData.address);
         setPlayer2Address(sanitizedAddress);
-      } else if (peerData.type === "PLAYER2_MOVED") {
+      } else if (peerData.type === "PLAYER2_MOVED" && peerData.move) {
+        setPlayer2Move(peerData.move);
         setIsRevealPhase(true);
       }
     }
@@ -97,46 +95,32 @@ export default function Player1Game() {
     };
   }, []);
 
-  const handleMoveSelection = (move: Move) => {
-    setSelectedMove(move);
-  };
-
   const handleCreateGame = async () => {
-    if (
-      !selectedMove ||
-      !stake ||
-      !player2Address ||
-      isCreatingGame ||
-      !connectionRef.current
-    )
-      return;
+    if (!moveRef.current || !stake || !player2Address || isCreatingGame || !connectionRef.current) return;
 
     setIsCreatingGame(true);
     try {
-      if (!window.ethereum) throw new Error("No ethereum provider");
-      console.log("window.ethereum", window.ethereum);
+      // Generate salt using crypto.randomUUID()
+      saltRef.current = crypto.randomUUID();
+      
       const publicClient = createPublicClient({
         chain: sepolia,
-        transport: custom(window.ethereum),
+        transport: custom(window.ethereum as EthereumProvider),
       });
 
-      const walletClient = createWalletClient({
-        chain: sepolia,
-        transport: custom(window.ethereum),
-      });
-
-      console.log("selectedMove", selectedMove);
-
-      const moveNumber = Object.values(Move).indexOf(selectedMove) + 1;
-      console.log("moveNumber", moveNumber);
-      const salt = generateSaltFromUUID(saltRef.current);
-      console.log("salt", salt);
+      const moveNumber = Object.values(Move).indexOf(moveRef.current) + 1;
+      const saltBigInt = BigInt("0x" + saltRef.current.replace(/-/g, ""));
 
       const moveHash = keccak256(
-        encodePacked(["uint8", "uint256"], [moveNumber, salt])
+        encodePacked(["uint8", "uint256"], [moveNumber, saltBigInt])
       );
 
       const stakeAmount = parseEther(stake);
+
+      const walletClient = createWalletClient({
+        chain: sepolia,
+        transport: custom(window.ethereum as EthereumProvider),
+      });
 
       const RPShash = await walletClient.deployContract({
         abi: RPS_ABI,
@@ -145,21 +129,18 @@ export default function Player1Game() {
         value: stakeAmount,
         account: address as Address,
       });
-      console.log("RPShash", RPShash);
 
       const contractAddress = await publicClient.waitForTransactionReceipt({
         hash: RPShash,
       });
       contractRef.current = contractAddress.contractAddress as Address;
-      moveRef.current = selectedMove;
-
-      console.log("contractAddress", contractAddress);
 
       connectionRef.current.send({
         type: "GAME_CREATED",
         contractAddress: contractAddress.contractAddress,
         stake,
       });
+      setWaitingForPlayer2(true);
     } catch (error) {
       console.error("Failed to create game:", error);
     } finally {
@@ -168,38 +149,72 @@ export default function Player1Game() {
   };
 
   const handleRevealMove = async () => {
-    if (!contractRef.current || !moveRef.current) return;
+    if (!contractRef.current || !moveRef.current || !saltRef.current || !player2Move) return;
 
     try {
+      const moveNumber = Object.values(Move).indexOf(moveRef.current) + 1;
+      const saltBigInt = BigInt("0x" + saltRef.current.replace(/-/g, ""));
+
       const walletClient = createWalletClient({
         chain: sepolia,
         transport: custom(window.ethereum as EthereumProvider),
       });
 
-      const moveNumber = Object.values(Move).indexOf(moveRef.current)+1;
-      const salt = generateSaltFromUUID(saltRef.current);
-
-      await walletClient.writeContract({
+      const hash = await walletClient.writeContract({
         address: contractRef.current,
         abi: RPS_ABI,
         functionName: "solve",
-        args: [moveNumber, salt],
+        args: [moveNumber, saltBigInt],
         account: address as Address,
       });
 
-      if (connectionRef.current) {
-        connectionRef.current.send({
-          type: "REVEAL_MOVE",
-        });
+      const publicClient = createPublicClient({
+        chain: sepolia,
+        transport: custom(window.ethereum as EthereumProvider),
+      });
+
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+
+      if (receipt.status === 'success') {
+        const result = determineWinner(moveRef.current, player2Move);
+        setGameResult(result);
+
+        if (connectionRef.current) {
+          connectionRef.current.send({
+            type: "REVEAL_MOVE",
+            move: moveRef.current,
+            result: result
+          });
+        }
       }
     } catch (error) {
       console.error("Failed to reveal move:", error);
     }
   };
 
+  const handleMoveSelection = (move: Move) => {
+    moveRef.current = move;
+    // Force a re-render since we're using a ref
+    forceUpdate();
+  };
+
   const handleStakeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const sanitizedValue = DOMPurify.sanitize(e.target.value);
     setStake(sanitizedValue);
+  };
+
+  const determineWinner = (p1Move: Move, p2Move: Move): string => {
+    if (p1Move === p2Move) return "Draw!";
+    
+    const moves = {
+      [Move.Rock]: [Move.Scissors, Move.Lizard],
+      [Move.Paper]: [Move.Rock, Move.Spock],
+      [Move.Scissors]: [Move.Paper, Move.Lizard],
+      [Move.Lizard]: [Move.Paper, Move.Spock],
+      [Move.Spock]: [Move.Rock, Move.Scissors],
+    };
+
+    return moves[p1Move].includes(p2Move) ? "You Win!" : "Player 2 Wins!";
   };
 
   if (!player2Address) {
@@ -227,6 +242,31 @@ export default function Player1Game() {
         <div className="animate-pulse mt-4 sm:mt-6">
           <div className="h-4 w-36 sm:w-48 bg-primary/20 rounded"></div>
         </div>
+      </div>
+    );
+  }
+
+  if (waitingForPlayer2 && !isRevealPhase) {
+    return (
+      <div className="flex flex-col items-center justify-center p-4 sm:p-8 bg-gray-light rounded-lg max-w-2xl mx-auto w-full">
+        <h2 className="text-xl sm:text-2xl font-bold text-primary mb-4 sm:mb-6">
+          Waiting for Player 2&apos;s Move
+        </h2>
+        <div className="animate-pulse mt-4">
+          <div className="h-4 w-36 bg-primary/20 rounded"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (gameResult) {
+    return (
+      <div className="flex flex-col items-center justify-center p-4 sm:p-8 bg-gray-light rounded-lg max-w-2xl mx-auto w-full">
+        <h2 className="text-xl sm:text-2xl font-bold text-primary mb-4">
+          Game Result: {gameResult}
+        </h2>
+        <p className="mb-2">Your Move: {moveRef.current}</p>
+        <p>Player 2&apos;s Move: {player2Move}</p>
       </div>
     );
   }
@@ -260,7 +300,7 @@ export default function Player1Game() {
               key={move}
               onClick={() => handleMoveSelection(move as Move)}
               className={`p-2 sm:p-4 rounded-lg transition-all duration-300 text-sm sm:text-base break-words ${
-                selectedMove === move
+                moveRef.current === move
                   ? "bg-primary text-white shadow-lg"
                   : "bg-white hover:bg-primary/10"
               }`}
@@ -287,7 +327,7 @@ export default function Player1Game() {
 
         <button
           onClick={handleCreateGame}
-          disabled={!selectedMove || !stake || isCreatingGame}
+          disabled={!moveRef.current || !stake || isCreatingGame}
           className="w-full button-primary disabled:opacity-50 relative py-2 sm:py-3"
         >
           {isCreatingGame ? (

@@ -7,6 +7,7 @@ import { Address, createWalletClient, custom, parseEther } from "viem";
 import { sepolia } from "viem/chains";
 import { RPS_ABI } from "@/app/contracts/RPS";
 import { EthereumProvider } from "@/app/types/ethereum";
+import { createPublicClient } from "viem";
 
 interface Player2GameProps {
   gameId: string;
@@ -19,6 +20,9 @@ export default function Player2Game({ gameId }: Player2GameProps) {
   const [contractAddress, setContractAddress] = useState<string>("");
   const [stakeAmount, setStakeAmount] = useState<string>("");
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isWaitingForReveal, setIsWaitingForReveal] = useState(false);
+  const [player1Move, setPlayer1Move] = useState<Move | null>(null);
+  const [gameResult, setGameResult] = useState<string | null>(null);
 
   const peerRef = useRef<Peer | null>(null);
   const connectionRef = useRef<DataConnection | null>(null);
@@ -26,15 +30,16 @@ export default function Player2Game({ gameId }: Player2GameProps) {
   const handlePeerData = (data: unknown, mounted: boolean = true) => {
     if (typeof data === "object" && data && "type" in data) {
       const peerData = data as PeerMessageType;
-
       if (peerData.type === "GAME_CREATED" && mounted) {
-        const sanitizedAddress = DOMPurify.sanitize(peerData.contractAddress);
-        const sanitizedStake = DOMPurify.sanitize(peerData.stake);
+        const sanitizedAddress = DOMPurify.sanitize(peerData.contractAddress || "");
+        const sanitizedStake = DOMPurify.sanitize(peerData.stake || "");
         setContractAddress(sanitizedAddress);
         setStakeAmount(sanitizedStake);
         setIsWaiting(false);
-      } else if (peerData.type === "REVEAL_MOVE") {
-        setIsPlaying(false);
+      } else if (peerData.type === "REVEAL_MOVE" && peerData.move && peerData.result) {
+        setPlayer1Move(peerData.move);
+        setGameResult(peerData.result);
+        setIsWaitingForReveal(false);
       }
     }
   };
@@ -108,10 +113,15 @@ export default function Player2Game({ gameId }: Player2GameProps) {
         transport: custom(window.ethereum as EthereumProvider),
       });
 
-      const moveNumber = Object.values(Move).indexOf(selectedMove);
+      const publicClient = createPublicClient({
+        chain: sepolia,
+        transport: custom(window.ethereum as EthereumProvider),
+      });
+
+      const moveNumber = Object.values(Move).indexOf(selectedMove)+1;
       const stake = parseEther(stakeAmount);
 
-      await walletClient.writeContract({
+      const hash = await walletClient.writeContract({
         address: contractAddress as Address,
         abi: RPS_ABI,
         functionName: "play",
@@ -120,14 +130,24 @@ export default function Player2Game({ gameId }: Player2GameProps) {
         account: address as Address,
       });
 
-      // Notify player 1 that move is played
-      if (connectionRef.current) {
-        connectionRef.current.send({
-          type: "PLAYER2_MOVED",
-        });
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      
+      if (receipt.status === 'success') {
+        alert('Move successfully played!');
+        
+        // Notify player 1 that move is played and send the move
+        if (connectionRef.current) {
+          connectionRef.current.send({
+            type: "PLAYER2_MOVED",
+            move: selectedMove
+          });
+        }
+        setIsWaitingForReveal(true);
       }
     } catch (error) {
       console.error("Failed to play move:", error);
+      alert('Failed to play move. Please try again.');
+    } finally {
       setIsPlaying(false);
     }
   };
@@ -149,6 +169,31 @@ export default function Player2Game({ gameId }: Player2GameProps) {
             </div>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  if (isWaitingForReveal) {
+    return (
+      <div className="flex flex-col items-center justify-center p-4 sm:p-8 bg-gray-light rounded-lg max-w-2xl mx-auto w-full">
+        <h2 className="text-xl sm:text-2xl font-bold text-primary mb-4 sm:mb-6">
+          Waiting for Player 1 to Reveal Move
+        </h2>
+        <div className="animate-pulse mt-4">
+          <div className="h-4 w-36 bg-primary/20 rounded"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (gameResult) {
+    return (
+      <div className="flex flex-col items-center justify-center p-4 sm:p-8 bg-gray-light rounded-lg max-w-2xl mx-auto w-full">
+        <h2 className="text-xl sm:text-2xl font-bold text-primary mb-4">
+          Game Result: {gameResult}
+        </h2>
+        <p className="mb-2">Your Move: {selectedMove}</p>
+        <p>Player 1&apos;s Move: {player1Move}</p>
       </div>
     );
   }

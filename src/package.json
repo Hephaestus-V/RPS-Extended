@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@metamask/eth-sig-util": "^8.1.2",
     "dompurify": "^3.2.3",
     "next": "15.1.4",
     "peerjs": "^1.5.4",
