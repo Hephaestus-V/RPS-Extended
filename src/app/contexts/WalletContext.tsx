@@ -79,21 +79,27 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (typeof window.ethereum !== 'undefined') {
-      window.ethereum.on('accountsChanged', (accounts: string[]) => {
+      const handleAccountsChanged = (...args: unknown[]) => {
+        const accounts = args[0] as string[];
         setAddress(accounts[0] || null);
         setIsConnected(!!accounts[0]);
-      });
+      };
 
-      window.ethereum.on('chainChanged', (chainId: string) => {
+      const handleChainChanged = (...args: unknown[]) => {
+        const chainId = args[0] as string;
         setIsCorrectNetwork(parseInt(chainId) === sepolia.id);
-      });
-    }
+      };
 
-    return () => {
-      if (window.ethereum) {
-        window.ethereum.removeAllListeners();
-      }
-    };
+      window.ethereum.on('accountsChanged', handleAccountsChanged);
+      window.ethereum.on('chainChanged', handleChainChanged);
+
+      return () => {
+        if (window.ethereum) {
+          window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+          window.ethereum.removeListener('chainChanged', handleChainChanged);
+        }
+      };
+    }
   }, []);
 
   return (
