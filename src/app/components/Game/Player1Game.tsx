@@ -28,6 +28,8 @@ export default function Player1Game() {
   const [player2Move, setPlayer2Move] = useState<Move | null>(null);
   const [waitingForPlayer2, setWaitingForPlayer2] = useState(false);
   const [gameResult, setGameResult] = useState<string | null>(null);
+  const [lastAction, setLastAction] = useState<bigint>(BigInt(0));
+  const [currentTime, setCurrentTime] = useState<bigint>(BigInt(0));
 
   const peerRef = useRef<Peer | null>(null);
   const connectionRef = useRef<DataConnection | null>(null);
@@ -100,7 +102,7 @@ export default function Player1Game() {
 
     setIsCreatingGame(true);
     try {
-      // Generate salt using crypto.randomUUID()
+      
       saltRef.current = crypto.randomUUID();
       
       const publicClient = createPublicClient({
@@ -194,7 +196,6 @@ export default function Player1Game() {
 
   const handleMoveSelection = (move: Move) => {
     moveRef.current = move;
-    // Force a re-render since we're using a ref
     forceUpdate();
   };
 
@@ -216,6 +217,83 @@ export default function Player1Game() {
 
     return moves[p1Move].includes(p2Move) ? "You Win!" : "Player 2 Wins!";
   };
+
+  const handleTimeoutClaim = async () => {
+    if (!contractRef.current || !address) return;
+
+    try {
+      const publicClient = createPublicClient({
+        chain: sepolia,
+        transport: custom(window.ethereum as EthereumProvider),
+      });
+
+      const lastActionTime = await publicClient.readContract({
+        address: contractRef.current,
+        abi: RPS_ABI,
+        functionName: "lastAction"
+      }) as bigint;
+
+      const timeoutDuration = await publicClient.readContract({
+        address: contractRef.current,
+        abi: RPS_ABI,
+        functionName: "TIMEOUT"
+      }) as bigint;
+
+      const now = Math.floor(Date.now() / 1000);
+      
+      if (now <= lastActionTime + timeoutDuration) {
+        alert("Player 2 still has time to make their move!");
+        return;
+      }
+
+      const walletClient = createWalletClient({
+        chain: sepolia,
+        transport: custom(window.ethereum as EthereumProvider),
+      });
+
+      const hash = await walletClient.writeContract({
+        address: contractRef.current,
+        abi: RPS_ABI,
+        functionName: "j2Timeout",
+        account: address as Address,
+      });
+
+      const receipt = await publicClient.waitForTransactionReceipt({ hash });
+      
+      if (receipt.status === 'success') {
+        alert("Successfully claimed timeout! Funds have been returned.");
+      }
+    } catch (error) {
+      console.error("Failed to claim timeout:", error);
+      alert("Failed to claim timeout. Please try again.");
+    }
+  };
+
+  useEffect(() => {
+    if (waitingForPlayer2 && contractRef.current) {
+      const interval = setInterval(async () => {
+        try {
+          const publicClient = createPublicClient({
+            chain: sepolia,
+            transport: custom(window.ethereum as EthereumProvider),
+          });
+
+          const lastActionTime = await publicClient.readContract({
+            address: contractRef.current!,
+            abi: RPS_ABI,
+            functionName: "lastAction"
+          }) as bigint;
+
+          setLastAction(lastActionTime);
+          setCurrentTime(BigInt(Math.floor(Date.now() / 1000)));
+        } catch (error) {
+          console.error("Failed to fetch times:", error);
+        }
+      }, 1000);
+
+      return () => clearInterval(interval);
+    }
+  }, [waitingForPlayer2]);
 
   if (!player2Address) {
     return (
@@ -247,11 +325,31 @@ export default function Player1Game() {
   }
 
   if (waitingForPlayer2 && !isRevealPhase) {
+    const timeElapsed = Number(currentTime - lastAction);
+    const minutesLeft = Math.max(5 - Math.floor(timeElapsed / 60), 0);
+    
     return (
       <div className="flex flex-col items-center justify-center p-4 sm:p-8 bg-gray-light rounded-lg max-w-2xl mx-auto w-full">
         <h2 className="text-xl sm:text-2xl font-bold text-primary mb-4 sm:mb-6">
           Waiting for Player 2&apos;s Move
         </h2>
+        
+        <div className="mb-4 text-center">
+          <p className="mb-2">Time since last action: {Math.floor(timeElapsed / 60)} minutes {timeElapsed % 60} seconds</p>
+          {minutesLeft > 0 ? (
+            <p>Player 2 has {minutesLeft} minutes left to play</p>
+          ) : (
+            <p className="text-red-500">Player 2 has timed out!</p>
+          )}
+        </div>
+
+        <button
+          onClick={handleTimeoutClaim}
+          className="w-full button-primary py-2 sm:py-3 text-sm sm:text-base mt-4"
+        >
+          Claim Timeout
+        </button>
+
         <div className="animate-pulse mt-4">
           <div className="h-4 w-36 bg-primary/20 rounded"></div>
         </div>
