@@ -43,11 +43,16 @@ export default function Player1Game() {
     if (typeof data === "object" && data && "type" in data) {
       const peerData = data as PeerMessageType;
       if (peerData.type === "PLAYER2_JOINED" && mounted && peerData.address) {
-        const sanitizedAddress = DOMPurify.sanitize(peerData.address);
-        setPlayer2Address(sanitizedAddress);
+        const sanitizedAddress = DOMPurify.sanitize(peerData.address.toString());
+        if (sanitizedAddress.match(/^0x[a-fA-F0-9]{40}$/)) {
+          setPlayer2Address(sanitizedAddress);
+        }
       } else if (peerData.type === "PLAYER2_MOVED" && peerData.move) {
-        setPlayer2Move(peerData.move);
-        setIsRevealPhase(true);
+        const sanitizedMove = DOMPurify.sanitize(peerData.move.toString());
+        if (Object.values(Move).includes(sanitizedMove as Move)) {
+          setPlayer2Move(sanitizedMove as Move);
+          setIsRevealPhase(true);
+        }
       }
     }
   };
@@ -139,8 +144,8 @@ export default function Player1Game() {
 
       connectionRef.current.send({
         type: "GAME_CREATED",
-        contractAddress: contractAddress.contractAddress,
-        stake,
+        contractAddress: DOMPurify.sanitize(contractAddress.contractAddress?.toString() || ""),
+        stake: DOMPurify.sanitize(stake),
       });
       setWaitingForPlayer2(true);
     } catch (error) {
@@ -201,7 +206,9 @@ export default function Player1Game() {
 
   const handleStakeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const sanitizedValue = DOMPurify.sanitize(e.target.value);
-    setStake(sanitizedValue);
+    if (sanitizedValue.match(/^\d*\.?\d*$/)) {
+      setStake(sanitizedValue);
+    }
   };
 
   const determineWinner = (p1Move: Move, p2Move: Move): string => {

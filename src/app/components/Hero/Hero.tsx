@@ -8,6 +8,7 @@ import Player1Game from '../Game/Player1Game';
 import Player2Game from '../Game/Player2Game';
 import GameRules from '../GameRules/GameRules';
 import { PlayButtonProps } from '@/app/types/game';
+import DOMPurify from 'dompurify';
 
 export default function Hero() {
     const [showJoinGame, setShowJoinGame] = useState(false);
@@ -17,20 +18,29 @@ export default function Hero() {
    
 
     const handleGameModeSelect = async (mode: GameMode) => {
-        setGameMode(mode);
-        if (mode === 'CREATE') {
-            setPeerId('placeholder');
-        } else if (mode === 'JOIN') {
-            setShowJoinGame(true);
+        const sanitizedMode = DOMPurify.sanitize(mode as string);
+        if (sanitizedMode === 'CREATE' || sanitizedMode === 'JOIN') {
+            setGameMode(sanitizedMode as GameMode);
+            if (sanitizedMode === 'CREATE') {
+                setPeerId('placeholder');
+            } else if (sanitizedMode === 'JOIN') {
+                setShowJoinGame(true);
+            }
         }
     };
 
     const handleJoinGame = async (gameId: string) => {
         try {
-            console.log('Joining game with ID:', gameId);
-            setJoinGameId(gameId);
-            setShowJoinGame(false);
-            setGameMode('JOIN');
+            const sanitizedGameId = DOMPurify.sanitize(gameId);
+            // Validate that gameId only contains allowed PeerJS ID characters
+            if (sanitizedGameId.match(/^[a-zA-Z0-9-_]+$/)) {
+                console.log('Joining game with ID:', sanitizedGameId);
+                setJoinGameId(sanitizedGameId);
+                setShowJoinGame(false);
+                setGameMode('JOIN');
+            } else {
+                throw new Error('Invalid game ID format');
+            }
         } catch (error) {
             console.error('Failed to initialize peer for joining:', error);
             setGameMode(null);

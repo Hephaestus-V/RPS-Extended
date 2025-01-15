@@ -33,14 +33,25 @@ export default function Player2Game({ gameId }: Player2GameProps) {
     if (typeof data === "object" && data && "type" in data) {
       const peerData = data as PeerMessageType;
       if (peerData.type === "GAME_CREATED" && mounted) {
-        const sanitizedAddress = DOMPurify.sanitize(peerData.contractAddress || "");
-        const sanitizedStake = DOMPurify.sanitize(peerData.stake || "");
-        setContractAddress(sanitizedAddress);
-        setStakeAmount(sanitizedStake);
+        const sanitizedAddress = DOMPurify.sanitize(peerData.contractAddress?.toString() || "");
+        const sanitizedStake = DOMPurify.sanitize(peerData.stake?.toString() || "");
+        
+        if (sanitizedAddress.match(/^0x[a-fA-F0-9]{40}$/)) {
+          setContractAddress(sanitizedAddress);
+        }
+        
+        if (sanitizedStake.match(/^\d*\.?\d*$/)) {
+          setStakeAmount(sanitizedStake);
+        }
         setIsWaiting(false);
       } else if (peerData.type === "REVEAL_MOVE" && peerData.move && peerData.result) {
-        setPlayer1Move(peerData.move);
-        setGameResult(peerData.result);
+        const sanitizedMove = DOMPurify.sanitize(peerData.move.toString());
+        const sanitizedResult = DOMPurify.sanitize(peerData.result.toString());
+        
+        if (Object.values(Move).includes(sanitizedMove as Move)) {
+          setPlayer1Move(sanitizedMove as Move);
+        }
+        setGameResult(sanitizedResult);
         setIsWaitingForReveal(false);
       }
     }
@@ -78,8 +89,11 @@ export default function Player2Game({ gameId }: Player2GameProps) {
           conn.on("error", reject);
         });
 
-        if (mounted) {
-          conn.send({ type: "PLAYER2_JOINED", address: address || "" });
+        if (mounted && connectionRef.current) {
+          connectionRef.current.send({ 
+            type: "PLAYER2_JOINED", 
+            address: DOMPurify.sanitize(address?.toString() || "") 
+          });
         }
       } catch (error) {
         console.error("Failed to connect:", error);
@@ -137,11 +151,10 @@ export default function Player2Game({ gameId }: Player2GameProps) {
       if (receipt.status === 'success') {
         alert('Move successfully played!');
         
-        // Notify player 1 that move is played and send the move
         if (connectionRef.current) {
           connectionRef.current.send({
             type: "PLAYER2_MOVED",
-            move: selectedMove
+            move: DOMPurify.sanitize(selectedMove.toString())
           });
         }
         setIsWaitingForReveal(true);
