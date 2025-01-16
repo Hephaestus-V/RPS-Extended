@@ -31,6 +31,7 @@ export default function Player1Game() {
   const [gameResult, setGameResult] = useState<string | null>(null);
   const [lastAction, setLastAction] = useState<bigint>(BigInt(0));
   const [currentTime, setCurrentTime] = useState<bigint>(BigInt(0));
+  const [isRevealing, setIsRevealing] = useState(false);
 
   const peerRef = useRef<Peer | null>(null);
   const connectionRef = useRef<DataConnection | null>(null);
@@ -154,6 +155,7 @@ export default function Player1Game() {
   const handleRevealMove = async () => {
     if (!contractRef.current || !moveRef.current || !saltRef.current || !player2Move) return;
 
+    setIsRevealing(true);
     try {
       const moveNumber = Object.values(Move).indexOf(moveRef.current) + 1;
       const saltBigInt = BigInt("0x" + saltRef.current.replace(/-/g, ""));
@@ -192,6 +194,8 @@ export default function Player1Game() {
       }
     } catch (error) {
       console.error("Failed to reveal move:", error);
+    } finally {
+      setIsRevealing(false);
     }
   };
 
@@ -380,9 +384,17 @@ export default function Player1Game() {
         </h2>
         <button
           onClick={handleRevealMove}
-          className="w-full button-primary py-2 sm:py-3 text-sm sm:text-base"
+          disabled={isRevealing}
+          className="w-full button-primary py-2 sm:py-3 text-sm sm:text-base disabled:opacity-50"
         >
-          Reveal Move
+          {isRevealing ? (
+            <span className="flex items-center justify-center">
+              <span className="animate-spin h-4 w-4 sm:h-5 sm:w-5 mr-2 sm:mr-3 border-2 border-white border-t-transparent rounded-full"></span>
+              <span>Revealing Move...</span>
+            </span>
+          ) : (
+            "Reveal Move"
+          )}
         </button>
       </div>
     );
