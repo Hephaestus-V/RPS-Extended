@@ -17,6 +17,7 @@ import { RPS_ABI } from "@/app/contracts/RPS";
 import { RPS_BYTECODE } from "@/app/contracts/RPS";
 import { EthereumProvider } from "@/app/types/ethereum";
 import useForceUpdate from "@/app/utils/forceUpdate";
+import { PEER_CONFIG, ADDRESS_REGEX, STAKE_AMOUNT_REGEX } from "@/app/constants/game";
 
 export default function Player1Game() {
   const [stake, setStake] = useState<string>("");
@@ -44,7 +45,7 @@ export default function Player1Game() {
       const peerData = data as PeerMessageType;
       if (peerData.type === "PLAYER2_JOINED" && mounted && peerData.address) {
         const sanitizedAddress = DOMPurify.sanitize(peerData.address.toString());
-        if (sanitizedAddress.match(/^0x[a-fA-F0-9]{40}$/)) {
+        if (sanitizedAddress.match(ADDRESS_REGEX)) {
           setPlayer2Address(sanitizedAddress);
         }
       } else if (peerData.type === "PLAYER2_MOVED" && peerData.move) {
@@ -62,12 +63,7 @@ export default function Player1Game() {
 
     const initializePeer = async () => {
       try {
-        const peer = new Peer({
-          config: {
-            iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-          },
-          debug: 3,
-        });
+        const peer = new Peer(PEER_CONFIG);
 
         peerRef.current = peer;
 
@@ -206,7 +202,7 @@ export default function Player1Game() {
 
   const handleStakeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const sanitizedValue = DOMPurify.sanitize(e.target.value);
-    if (sanitizedValue.match(/^\d*\.?\d*$/)) {
+    if (sanitizedValue.match(STAKE_AMOUNT_REGEX)) {
       setStake(sanitizedValue);
     }
   };

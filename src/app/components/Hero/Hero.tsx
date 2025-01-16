@@ -9,6 +9,7 @@ import Player2Game from '../Game/Player2Game';
 import GameRules from '../GameRules/GameRules';
 import { PlayButtonProps } from '@/app/types/game';
 import DOMPurify from 'dompurify';
+import { PEER_ID_REGEX } from "@/app/constants/game";
 
 export default function Hero() {
     const [showJoinGame, setShowJoinGame] = useState(false);
@@ -32,8 +33,7 @@ export default function Hero() {
     const handleJoinGame = async (gameId: string) => {
         try {
             const sanitizedGameId = DOMPurify.sanitize(gameId);
-            // Validate that gameId only contains allowed PeerJS ID characters
-            if (sanitizedGameId.match(/^[a-zA-Z0-9-_]+$/)) {
+            if (sanitizedGameId.match(PEER_ID_REGEX)) {
                 console.log('Joining game with ID:', sanitizedGameId);
                 setJoinGameId(sanitizedGameId);
                 setShowJoinGame(false);

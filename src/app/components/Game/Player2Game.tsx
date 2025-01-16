@@ -8,6 +8,7 @@ import { sepolia } from "viem/chains";
 import { RPS_ABI } from "@/app/contracts/RPS";
 import { EthereumProvider } from "@/app/types/ethereum";
 import { createPublicClient } from "viem";
+import { ADDRESS_REGEX, STAKE_AMOUNT_REGEX, PEER_CONFIG } from "@/app/constants/game";
 
 interface Player2GameProps {
   gameId: string;
@@ -36,11 +37,11 @@ export default function Player2Game({ gameId }: Player2GameProps) {
         const sanitizedAddress = DOMPurify.sanitize(peerData.contractAddress?.toString() || "");
         const sanitizedStake = DOMPurify.sanitize(peerData.stake?.toString() || "");
         
-        if (sanitizedAddress.match(/^0x[a-fA-F0-9]{40}$/)) {
+        if (sanitizedAddress.match(ADDRESS_REGEX)) {
           setContractAddress(sanitizedAddress);
         }
         
-        if (sanitizedStake.match(/^\d*\.?\d*$/)) {
+        if (sanitizedStake.match(STAKE_AMOUNT_REGEX)) {
           setStakeAmount(sanitizedStake);
         }
         setIsWaiting(false);
@@ -64,13 +65,7 @@ export default function Player2Game({ gameId }: Player2GameProps) {
       if (!gameId) return;
 
       try {
-        const peer = new Peer({
-          config: {
-            iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-          },
-          debug: 3,
-        });
-
+        const peer = new Peer(PEER_CONFIG);
         peerRef.current = peer;
 
         await new Promise<void>((resolve, reject) => {
